@@ -2,6 +2,8 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import {Dirent, PathLike, promises as fs, StatsBase} from 'fs';
+import { Agent } from 'http';
+import path = require('path');
 
 const fileSuffix = '.component.ts';
 const output = vscode.window.createOutputChannel("output");
@@ -19,31 +21,32 @@ export function deactivate() {}
 let createSnippets = async (): Promise<void> => {
 
 	// fetch .component.ts files list
-	output.appendLine('Component List:');
 	let files: PathLike[] = await getFileList();
 
 	// fetch all .component.ts data
-	output.appendLine('Complete data:');
 	let data: any[] = await getComponentsData(files);
 
-	// read file and create snipped json
-	files.forEach(file => {
-		output.appendLine('    ' + file);
-	});
 };
 
+
+// PUBLIC
 async function getComponentsData( files: PathLike[] ): Promise<any[]> {
-	const data: any[] = [];
+	const data: any = {};
 	for(let file of files) {
-		// let fileData = await fs.readFile( file, 'utf8' );
-		// output.appendLine(fileData);
+		// var setups
+		let uri = String(file);
+		let ext = path.extname(uri);
+		data[path.basename(uri, `.component${ext}`)] = getEmptySnippet();
+
+		// get file data
+		// let component = getComponentData(await fs.readFile( file, 'utf8' ));
+
 	}
+	output.appendLine(JSON.stringify(data));
 	return data;
 }
 
-// PUBLIC
 async function getFileList(): Promise<PathLike[]> {
-	output.appendLine('getFileList');
 	const workspace = vscode.workspace.workspaceFolders;
 	const uri = (workspace && workspace[0].uri.fsPath) || '';
 	const files = await recursiveGetTsFiles(uri + '/src/');
@@ -51,8 +54,16 @@ async function getFileList(): Promise<PathLike[]> {
 }
 
 // PRIVATE
+function getEmptySnippet() {
+	return {
+		"prefix": [],
+		"body": [],
+		"description": '',
+		"scope": "javascript,typescript",
+	};
+}
+
 async function recursiveGetTsFiles(uri:string): Promise<PathLike[]> {
-	output.appendLine('recursiveGetTsFiles');
 	//output list
 	const fileList: PathLike[] = [];
 
