@@ -36,11 +36,8 @@ async function getComponentsData( files: PathLike[] ): Promise<any[]> {
 		// var setups
 		let uri = String(file);
 		let ext = path.extname(uri);
-		data[path.basename(uri, `.component${ext}`)] = getEmptySnippet();
-
-		// get file data
-		// let component = getComponentData(await fs.readFile( file, 'utf8' ));
-
+		let name = path.basename(uri, `.component${ext}`);
+		data[name] = makeSnippet(name, await fs.readFile( file, 'utf8' ));
 	}
 	output.appendLine(JSON.stringify(data));
 	return data;
@@ -54,13 +51,49 @@ async function getFileList(): Promise<PathLike[]> {
 }
 
 // PRIVATE
-function getEmptySnippet() {
-	return {
-		"prefix": [],
-		"body": [],
-		"description": '',
+function makeSnippet(name:string, file: string) {
+	let lines = file.split('\n');
+
+	let inputString = "@Input()";
+	let outputString = "@Output()";
+
+	let open = `<${name}>`;
+	let inputs = [];
+	let outputs = [];
+	let body = [];
+	let close = `</${name}>`;
+
+	for( let line of lines ) {
+		line = line
+			.replace(';', '')
+			.replace(':', '')
+			.replace('=', '')
+			.trim();
+		let split = line.split( ' ' );
+		if ( line.substring(0,inputString.length) === inputString ) {
+			inputs.push(`  [${split[1]}]=\"${split[2] || ''}\"`);
+		}
+
+		if ( line.substring(0,outputString.length) === outputString ) {
+			outputs.push(`  (${split[1]})=\"${split[2] || ''}\"`);
+		}
+	}
+
+	body = [ ...inputs,...outputs ];
+
+	if ( body.length ) {
+		open = `<${name}`;
+		body[body.length-1] += '>';
+	}
+
+	let snippet = {
+		"prefix": [name],
+		"body": [open, ...body, close],
+		"description": name,
 		"scope": "javascript,typescript",
 	};
+	output.appendLine(JSON.stringify(snippet));
+	return snippet;
 }
 
 async function recursiveGetTsFiles(uri:string): Promise<PathLike[]> {
