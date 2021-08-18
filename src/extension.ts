@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import {Dirent, promises as fs, StatsBase} from 'fs';
+import {Dirent, PathLike, promises as fs, StatsBase} from 'fs';
 
 const fileSuffix = '.component.ts';
 const output = vscode.window.createOutputChannel("output");
@@ -18,26 +18,43 @@ export function deactivate() {}
 
 let createSnippets = async (): Promise<void> => {
 
-	// fetch all .component.ts files
-	output.appendLine('Complete File List:');
-	let files = await getFileList();
+	// fetch .component.ts files list
+	output.appendLine('Component List:');
+	let files: PathLike[] = await getFileList();
+
+	// fetch all .component.ts data
+	output.appendLine('Complete data:');
+	let data: any[] = await getComponentsData(files);
 
 	// read file and create snipped json
 	files.forEach(file => {
-		output.appendLine('    ' + file.name);
+		output.appendLine('    ' + file);
 	});
 };
 
-async function getFileList(): Promise<Dirent[]> {
+async function getComponentsData( files: PathLike[] ): Promise<any[]> {
+	const data: any[] = [];
+	for(let file of files) {
+		// let fileData = await fs.readFile( file, 'utf8' );
+		// output.appendLine(fileData);
+	}
+	return data;
+}
+
+// PUBLIC
+async function getFileList(): Promise<PathLike[]> {
+	output.appendLine('getFileList');
 	const workspace = vscode.workspace.workspaceFolders;
 	const uri = (workspace && workspace[0].uri.fsPath) || '';
-	const files = await recursiveGetTsFiles(uri + '/src');
+	const files = await recursiveGetTsFiles(uri + '/src/');
 	return files;
 }
 
-async function recursiveGetTsFiles(uri:string): Promise<Dirent[]> {
+// PRIVATE
+async function recursiveGetTsFiles(uri:string): Promise<PathLike[]> {
+	output.appendLine('recursiveGetTsFiles');
 	//output list
-	const fileList: Dirent[] = [];
+	const fileList: PathLike[] = [];
 
 	// all files in current uri
     const files: Dirent[] = await fs.readdir(
@@ -47,11 +64,12 @@ async function recursiveGetTsFiles(uri:string): Promise<Dirent[]> {
 
 	// find all .component.ts files or read next dir
 	for( let file of files ) {
+
 		if (file.isFile() && file.name.slice(-fileSuffix.length) === fileSuffix) {
-			fileList.push(file);
+			fileList.push(uri + file.name);
 		}
 		if (file.isDirectory()) {
-			fileList.push( ... await recursiveGetTsFiles(uri + '/' + file.name) );
+			fileList.push( ... await recursiveGetTsFiles(uri + file.name + '/') );
 		}
 	}
 
