@@ -1,12 +1,10 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import {Dirent, PathLike, promises as fs, StatsBase} from 'fs';
-import { Agent } from 'http';
-import path = require('path');
+import * as path from 'path';
+import {Dirent, PathLike, promises as fs} from 'fs';
 
-const fileSuffix = '.component.ts';
-const output = vscode.window.createOutputChannel("output");
+const outputChannel = vscode.window.createOutputChannel('ngSnippets');
 const workspace = vscode.workspace.workspaceFolders;
 const uri = (workspace && workspace[0].uri.fsPath) || '';
 
@@ -21,102 +19,123 @@ export async function activate(context: vscode.ExtensionContext) {
 export function deactivate() {}
 
 let createSnippets = async (): Promise<void> => {
+	outputChannel.appendLine('Creating snippets');
 
 	// fetch .component.ts files list
-	let files: PathLike[] = await getFileList(uri + '/src/');
+	let files: PathLike[] = await getFileList(`${uri}/src/`);
 
 	// fetch all .component.ts data
 	let data: any[] = await getComponentsData(files);
 
-	// save to angular-project.code-snippets
-	fs.writeFile(uri+'/.vscode/angular-project.code-snippets', JSON.stringify(data));
-
+	// save to ng-project.code-snippets
+	await writeDataToFile(uri, data);
 };
 
-
 // PUBLIC
-async function getComponentsData( files: PathLike[] ): Promise<any[]> {
+async function getComponentsData(files: PathLike[]): Promise<any[]> {
 	const data: any = {};
+	outputChannel.appendLine('Generating:');
 	for(let file of files) {
-		// var setups
 		let uri = String(file);
 		let ext = path.extname(uri);
 		let name = path.basename(uri, `.component${ext}`);
+
+		outputChannel.appendLine(`   ${name}`);
 		data[name] = makeSnippet(name, await fs.readFile( file, 'utf8' ));
 	}
-	output.appendLine(JSON.stringify(data));
 	return data;
 }
 
 async function getFileList(uri: string): Promise<PathLike[]> {
-	const files = await recursiveGetTsFiles(uri);
+	const files = await recursiveGetTsJsFiles(uri);
 	return files;
+}
+
+function writeDataToFile(uri:string, data: any) {
+	try {
+		let file = `${uri}/.vscode/ng-project.code-snippets`;
+		fs.writeFile(file, JSON.stringify(data));
+		outputChannel.appendLine('Snippets saved');
+	} catch(e) {
+		outputChannel.appendLine(e);
+	}
 }
 
 // PRIVATE
 function makeSnippet(name:string, file: string) {
-	let lines = file.split('\n');
+	// this function needs refactored for better regex matching and general reliability
+	let open = '';
+	let selector = '';
+	let inputs = [];
+	let outputs = [];
+	let body = [];
+	let close = '';
 
 	let inputString = "@Input()";
 	let outputString = "@Output()";
 
-	let open = `<${name}>`;
-	let inputs = [];
-	let outputs = [];
-	let body = [];
-	let close = `</${name}>`;
+	let lines = file.split(/\r?\n/g);
 
 	for( let line of lines ) {
 		line = line
 			.replace(';', '')
 			.replace(':', '')
 			.replace('=', '')
+			.replace('get', '')
+			.replace('set', '')
+			.replace(/  +/g, ' ')
 			.trim();
-		let split = line.split( ' ' );
-		if ( line.substring(0,inputString.length) === inputString ) {
+		let split = line.split(' ');
+		outputChannel.appendLine(line);
+
+		if (split[0] === 'selector') {
+			selector = split[1].replace(/'/g,'').replace(',', '');
+		}
+
+		if (line.substring(0,inputString.length) === inputString) {
 			inputs.push(`  [${split[1]}]=\"${split[2] || ''}\"`);
 		}
 
-		if ( line.substring(0,outputString.length) === outputString ) {
+		if (line.substring(0,outputString.length) === outputString) {
 			outputs.push(`  (${split[1]})=\"${split[2] || ''}\"`);
 		}
 	}
 
-	body = [ ...inputs,...outputs ];
+	body = [...inputs, ...outputs];
 
 	if ( body.length ) {
-		open = `<${name}`;
+		open = `<${selector}`;
 		body[body.length-1] += '>';
+	} else {
+		open = `<${selector}>`;
 	}
+	close = `</${selector}>`;
 
 	let snippet = {
-		"prefix": [name],
+		"prefix": [`${selector}`],
 		"body": [open, ...body, close],
-		"description": name,
-		"scope": "javascript,typescript",
+		"description": `<${name}>`,
+		"scope": "html",
 	};
-	output.appendLine(JSON.stringify(snippet));
 	return snippet;
 }
 
-async function recursiveGetTsFiles(uri:string): Promise<PathLike[]> {
-	//output list
+async function recursiveGetTsJsFiles(uri:string): Promise<PathLike[]> {
+	const comp = '.component';
 	const fileList: PathLike[] = [];
+    const files: Dirent[] = await fs.readdir(uri,{withFileTypes:true});
 
-	// all files in current uri
-    const files: Dirent[] = await fs.readdir(
-		uri,
-		{ withFileTypes: true }
-	);
+	for(let file of files) {
+		let ext = path.extname(file.name);
+		let basename = path.basename(file.name, ext);
 
-	// find all .component.ts files or read next dir
-	for( let file of files ) {
-
-		if (file.isFile() && file.name.slice(-fileSuffix.length) === fileSuffix) {
-			fileList.push(uri + file.name);
+		// find all .component.ts && .component.js files || read next dir
+		if (file.isFile() && (ext === '.ts' || ext === '.js') && basename.slice(-comp.length) === comp) {
+			fileList.push(`${uri}${file.name}`);
 		}
+
 		if (file.isDirectory()) {
-			fileList.push( ... await recursiveGetTsFiles(uri + file.name + '/') );
+			fileList.push(...await recursiveGetTsJsFiles(`${uri}${file.name}/`));
 		}
 	}
 
