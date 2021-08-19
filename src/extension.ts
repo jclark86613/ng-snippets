@@ -10,7 +10,7 @@ const uri = (workspace && workspace[0].uri.fsPath) || '';
 
 export async function activate(context: vscode.ExtensionContext) {
 	let disposable = vscode.commands.registerCommand(
-		'ng-component-template-snippet.scan',
+		'ng-snippet.CreateNgSnippets',
 		createSnippets
 	);
 	context.subscriptions.push(disposable);
@@ -77,26 +77,26 @@ function makeSnippet(name:string, file: string) {
 	let lines = file.split(/\r?\n/g);
 
 	for( let line of lines ) {
-		line = line
+
+		let split = line
 			.replace(';', '')
 			.replace(':', '')
 			.replace('=', '')
 			.replace('get', '')
 			.replace('set', '')
 			.replace(/  +/g, ' ')
-			.trim();
-		let split = line.split(' ');
-		outputChannel.appendLine(line);
+			.trim()
+			.split(' ');
 
 		if (split[0] === 'selector') {
 			selector = split[1].replace(/'/g,'').replace(',', '');
 		}
 
-		if (line.substring(0,inputString.length) === inputString) {
+		if (split[0] === inputString) {
 			inputs.push(`  [${split[1]}]=\"${split[2] || ''}\"`);
 		}
 
-		if (line.substring(0,outputString.length) === outputString) {
+		if (split[0] === outputString) {
 			outputs.push(`  (${split[1]})=\"${split[2] || ''}\"`);
 		}
 	}
