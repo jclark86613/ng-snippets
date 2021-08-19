@@ -7,6 +7,8 @@ import path = require('path');
 
 const fileSuffix = '.component.ts';
 const output = vscode.window.createOutputChannel("output");
+const workspace = vscode.workspace.workspaceFolders;
+const uri = (workspace && workspace[0].uri.fsPath) || '';
 
 export async function activate(context: vscode.ExtensionContext) {
 	let disposable = vscode.commands.registerCommand(
@@ -21,10 +23,13 @@ export function deactivate() {}
 let createSnippets = async (): Promise<void> => {
 
 	// fetch .component.ts files list
-	let files: PathLike[] = await getFileList();
+	let files: PathLike[] = await getFileList(uri + '/src/');
 
 	// fetch all .component.ts data
 	let data: any[] = await getComponentsData(files);
+
+	// save to angular-project.code-snippets
+	fs.writeFile(uri+'/.vscode/angular-project.code-snippets', JSON.stringify(data));
 
 };
 
@@ -43,10 +48,8 @@ async function getComponentsData( files: PathLike[] ): Promise<any[]> {
 	return data;
 }
 
-async function getFileList(): Promise<PathLike[]> {
-	const workspace = vscode.workspace.workspaceFolders;
-	const uri = (workspace && workspace[0].uri.fsPath) || '';
-	const files = await recursiveGetTsFiles(uri + '/src/');
+async function getFileList(uri: string): Promise<PathLike[]> {
+	const files = await recursiveGetTsFiles(uri);
 	return files;
 }
 
