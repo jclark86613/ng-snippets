@@ -4,6 +4,17 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import {Dirent, PathLike, promises as fs} from 'fs';
 
+// Interfaces
+interface Snippets {
+	[key: string]: Snippet;
+}
+interface Snippet {
+	"prefix": string[],
+	"body": string[],
+	"description": string,
+	"scope": string,
+}
+
 const outputChannel = vscode.window.createOutputChannel('ngSnippets');
 const workspace = vscode.workspace.workspaceFolders;
 const uri = (workspace && workspace[0].uri.fsPath) || '';
@@ -25,15 +36,15 @@ let createSnippets = async (): Promise<void> => {
 	let files: PathLike[] = await getFileList(`${uri}/src/`);
 
 	// fetch all .component.ts data
-	let data: any[] = await getComponentsData(files);
+	let data: Snippets = await generateSnippets(files);
 
 	// save to ng-project.code-snippets
-	await writeDataToFile(uri, data);
+	await writeSnippetsToFile(uri, data);
 };
 
 // PUBLIC
-async function getComponentsData(files: PathLike[]): Promise<any[]> {
-	const data: any = {};
+async function generateSnippets(files: PathLike[]): Promise<Snippets> {
+	const data: Snippets = {};
 	outputChannel.appendLine('Generating:');
 	for(let file of files) {
 		let uri = String(file);
@@ -51,7 +62,7 @@ async function getFileList(uri: string): Promise<PathLike[]> {
 	return files;
 }
 
-function writeDataToFile(uri:string, data: any) {
+function writeSnippetsToFile(uri:string, data: any) {
 	try {
 		let file = `${uri}/.vscode/ng-project.code-snippets`;
 		fs.writeFile(file, JSON.stringify(data));
@@ -62,21 +73,21 @@ function writeDataToFile(uri:string, data: any) {
 }
 
 // PRIVATE
-function makeSnippet(name:string, file: string) {
-	// this function needs refactored for better regex matching and general reliability
-	let open = '';
-	let selector = '';
-	let inputs = [];
-	let outputs = [];
-	let body = [];
-	let close = '';
-
-	let inputString = "@Input()";
-	let outputString = "@Output()";
-
+function makeSnippet(name:string, file: string): Snippet {
+	let open: string = '';
+	let selector: string = '';
+	let inputs: string[] = [];
+	let outputs: string[] = [];
+	let body: string[] = [];
+	let close: string = '';
+	let inputString: string = "@Input";
+	let outputString: string = "@Output";
 	let lines = file.split(/\r?\n/g);
 
 	for( let line of lines ) {
+
+		let inOutRegex = new RegExp( /(@Input|@Output)+\(\)([^;?=]+)/g );
+		let inOut = [...line.matchAll(inOutRegex)][0];
 
 		let split = line
 			.replace(';', '')
@@ -92,12 +103,27 @@ function makeSnippet(name:string, file: string) {
 			selector = split[1].replace(/'/g,'').replace(',', '');
 		}
 
-		if (split[0] === inputString) {
-			inputs.push(`  [${split[1]}]=\"${split[2] || ''}\"`);
-		}
+		if (inOut) {
+			let [,decortaor, nameType] = inOut;
 
-		if (split[0] === outputString) {
-			outputs.push(`  (${split[1]})=\"${split[2] || ''}\"`);
+			// if an @Input is a setter function
+			if (nameType.indexOf('set') !== -1) {
+				let setNameType = [...nameType.matchAll(new RegExp(/set([^\(]*)\(([^]*)\)/g))][0];
+				nameType = `${setNameType[1]}:${setNameType[2].split(':')[1]}`;
+			}
+
+			// @Input or @Output name and type
+			var [name, type] = nameType.split(':');
+
+			if (decortaor === inputString) {
+				// [inputName]="type"
+				inputs.push(`  [${name.trim()}]=\"${type?.trim() || ''}\"`);
+			}
+
+			if (decortaor === outputString) {
+				// (outputName)=""
+				outputs.push(`  (${name.trim()})=\"${type?.trim() || ''}\"`);
+			}
 		}
 	}
 
@@ -111,7 +137,7 @@ function makeSnippet(name:string, file: string) {
 	}
 	close = `</${selector}>`;
 
-	let snippet = {
+	const snippet: Snippet = {
 		"prefix": [`${selector}`],
 		"body": [open, ...body, close],
 		"description": `<${name}>`,
