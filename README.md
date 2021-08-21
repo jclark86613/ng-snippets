@@ -1,22 +1,18 @@
-# ng-component-template-snippet README
+# ng-snippets README
 
-This is the README for your extension "ng-component-template-snippet". After writing up a brief description, we recommend including the following sections.
+ng-snippets is a vscode extension that is used to build HTML boilerplate snippets of all Angular project components. Once you have installed ng snippets it is really easy to setup:
+- ctl + shift + p
+- search & run 'ng snippets'
 
-## Features
+Now you are ready to go. Your project now has a new vscode snippets file located:
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+`.vscode/ng-project.code-snippets`
 
-For example if there is an image subfolder under your extension project workspace:
+Now your intellisense will be able to autocomplete the component template in HTML files. Including populating all possible @Input() & @Output() decorators and there value types.
 
-\!\[feature X\]\(images/feature-x.png\)
+<!-- \[feature X\]\(images/feature-x.png\) -->
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
+<!-- ## Extension Settings
 
 Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
 
@@ -25,29 +21,20 @@ For example:
 This extension contributes the following settings:
 
 * `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
+* `myExtension.thing`: set to `blah` to do something -->
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- none, yet!
 
 ## Release Notes
+### 0.1.0 beta
 
-Users appreciate release notes as you update your extension.
+Initial release of ng-snippets.
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
 
 -----------------------------------------------------------------------------------------------------------
+<!--
 ## Following extension guidelines
 
 Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
@@ -67,4 +54,4 @@ Ensure that you've read through the extensions guidelines and follow the best pr
 * [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
 * [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
 
-**Enjoy!**
+**Enjoy!** -->
