@@ -1,8 +1,14 @@
 {
-  "name": "ng-snippet",
-  "displayName": "ng-snippet",
+  "name": "ng-snippets",
+  "displayName": "ng-snippets - beta",
   "description": "",
-  "version": "0.0.1",
+  "version": "0.0.5",
+  "publisher": "HamieScripts",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jclark86613/ng-snippets"
+  },
   "engines": {
     "vscode": "^1.59.0"
   },

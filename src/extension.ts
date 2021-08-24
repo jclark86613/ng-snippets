@@ -63,10 +63,11 @@ async function getFileList(uri: string): Promise<PathLike[]> {
   return files;
 }
 
-function writeSnippetsToFile(uri:string, data: any) {
+async function writeSnippetsToFile(uri:string, data: any) {
   try {
     const file = `${uri}/.vscode/ng-project.code-snippets`;
-    fs.writeFile(file, JSON.stringify(data));
+    await fs.mkdir(`${uri}/.vscode/`, {recursive: true} );
+    await fs.writeFile(file, JSON.stringify(data));
     outputChannel.appendLine('Snippets saved');
   } catch (e) {
     outputChannel.appendLine(e);
@@ -86,7 +87,9 @@ function makeSnippet(name:string, file: string): Snippet {
   let close: string = '';
 
   for ( const line of lines ) {
-    const inOutRegex = new RegExp( /(@Input|@Output)+\(\)([^;?=]+)/g );
+    const inOutRegex = new RegExp(
+        /(@Input|@Output)\(\)(?:\spublic\s|\sprivate\s|\s)([^;=]+)/g
+    );
     const inOut = [...line.matchAll(inOutRegex)][0];
 
     const split = line
@@ -107,7 +110,7 @@ function makeSnippet(name:string, file: string): Snippet {
       let [, decortaor, nameType] = inOut;
 
       // if an @Input is a setter function
-      if (nameType.indexOf('set') !== -1) {
+      if (nameType.indexOf(' set ') !== -1) {
         const setNameType = [
           ...nameType.matchAll(new RegExp(/set([^(]*)\(([^]*)\)/g)),
         ][0];
@@ -124,12 +127,12 @@ function makeSnippet(name:string, file: string): Snippet {
 
       if (decortaor === outputString) {
         // (outputName)=""
-        outputs.push(`  (${name.trim()})="${type?.trim() || ''}"`);
+        outputs.push(`  (${name.trim()})=""`);
       }
     }
   }
 
-  body = [...inputs, ...outputs];
+  body = [...inputs.sort(), ...outputs.sort()];
 
   if ( body.length ) {
     open = `<${selector}`;

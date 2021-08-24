@@ -28,7 +28,13 @@ This extension contributes the following settings:
 - none, yet!
 
 ## Release Notes
-### 0.1.0 beta
+### 0.0.5 beta
+
+-better support for setter functions
+-fix a bug where @Input and @Outputs set with private/public decorators weren't formatted properly
+-create .vscode directory if it doesn't already exist
+
+### 0.0.4 beta
 
 Initial release of ng-snippets.
 
