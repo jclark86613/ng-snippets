@@ -25,14 +25,17 @@ This extension contributes the following settings:
 
 ## Known Issues
 
-- none, yet!
+- @Input() that use getter/setter functions are not formatted properly.
 
 ## Release Notes
-### 0.0.5 beta
+### 0.0.6 beta
+- add project name from package.json as a snippet prefix
+- do not generate snippet for a component without a selector
 
--better support for setter functions
--fix a bug where @Input and @Outputs set with private/public decorators weren't formatted properly
--create .vscode directory if it doesn't already exist
+### 0.0.5 beta
+- better support for setter functions
+- fix a bug where @Input and @Outputs set with private/public decorators weren't formatted properly
+- create .vscode directory if it doesn't already exist
 
 ### 0.0.4 beta
 

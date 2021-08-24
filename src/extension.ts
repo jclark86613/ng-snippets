@@ -4,7 +4,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import {Dirent, PathLike, promises as fs} from 'fs';
-
 // Interfaces
 interface Snippets {
     [key: string]: Snippet;
@@ -36,24 +35,43 @@ const createSnippets = async (): Promise<void> => {
   // fetch .component.ts files list
   const files: PathLike[] = await getFileList(`${uri}/src/`);
 
+  // get the project package.json
+  outputChannel.appendLine(`${vscode.workspace.workspaceFolders}/package.json`);
+  const project = await fs.readFile(
+      `${uri}/package.json`, 'utf8'
+  );
+  outputChannel.appendLine(project);
   // fetch all .component.ts data
-  const data: Snippets = await generateSnippets(files);
+  const data: Snippets = await generateSnippets(
+      files,
+      JSON.parse(project).name
+  );
 
   // save to ng-project.code-snippets
   await writeSnippetsToFile(uri, data);
 };
 
 // PUBLIC
-async function generateSnippets(files: PathLike[]): Promise<Snippets> {
+async function generateSnippets(
+    files: PathLike[],
+    project: string
+): Promise<Snippets> {
   const data: Snippets = {};
   outputChannel.appendLine('Generating:');
   for (const file of files) {
     const uri = String(file);
     const ext = path.extname(uri);
     const name = path.basename(uri, `.component${ext}`);
-
+    const snippet: Snippet|false = makeSnippet(
+        name,
+        await fs.readFile( file, 'utf8' ),
+        project
+    );
+    if (!snippet) {
+      continue;
+    }
     outputChannel.appendLine(`   ${name}`);
-    data[name] = makeSnippet(name, await fs.readFile( file, 'utf8' ));
+    data[name] = snippet;
   }
   return data;
 }
@@ -75,7 +93,11 @@ async function writeSnippetsToFile(uri:string, data: any) {
 }
 
 // PRIVATE
-function makeSnippet(name:string, file: string): Snippet {
+function makeSnippet(
+    name:string,
+    file: string,
+    project: string
+): Snippet|false {
   const inputs: string[] = [];
   const outputs: string[] = [];
   const inputString: string = '@Input';
@@ -96,8 +118,6 @@ function makeSnippet(name:string, file: string): Snippet {
         .replace(';', '')
         .replace(':', '')
         .replace('=', '')
-        .replace('get', '')
-        .replace('set', '')
         .replace(/  +/g, ' ')
         .trim()
         .split(' ');
@@ -107,18 +127,18 @@ function makeSnippet(name:string, file: string): Snippet {
     }
 
     if (inOut) {
-      let [, decortaor, nameType] = inOut;
+      const [, decortaor, nameType] = inOut;
 
       // if an @Input is a setter function
-      if (nameType.indexOf(' set ') !== -1) {
-        const setNameType = [
-          ...nameType.matchAll(new RegExp(/set([^(]*)\(([^]*)\)/g)),
-        ][0];
-        nameType = `${setNameType[1]}:${setNameType[2].split(':')[1]}`;
-      }
+      // if (nameType.indexOf(' set ') !== -1) {
+      //   const setNameType = [
+      //     ...nameType.matchAll(new RegExp(/set([^(]*)\(([^]*)\)/g)),
+      //   ][0];
+      //   nameType = `${setNameType[1]}:${setNameType[2].split(':')[1]}`;
+      // }
 
       // @Input or @Output name and type
-      const [name, type] = nameType.split(':');
+      const [name, type] = nameType.split(/:(.+)/);
 
       if (decortaor === inputString) {
         // [inputName]="type"
@@ -132,6 +152,10 @@ function makeSnippet(name:string, file: string): Snippet {
     }
   }
 
+  if (!selector) {
+    return false;
+  }
+
   body = [...inputs.sort(), ...outputs.sort()];
 
   if ( body.length ) {
@@ -143,7 +167,11 @@ function makeSnippet(name:string, file: string): Snippet {
   close = `</${selector}>`;
 
   const snippet: Snippet = {
-    'prefix': [`${selector}`],
+    'prefix': [
+      `${selector}`,
+      `<${selector}`,
+      project,
+    ],
     'body': [open, ...body, close],
     'description': `<${name}>`,
     'scope': 'html',
