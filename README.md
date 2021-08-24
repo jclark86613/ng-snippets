@@ -1,14 +1,20 @@
-# ng-snippets README
-
-ng-snippets is a vscode extension that is used to build HTML boilerplate snippets of all Angular project components. Once you have installed ng snippets it is really easy to setup:
+# ng-snippets for Visual Studio Code
+**ng-snippets** is an extension **generates HTML snippets** of all **Angular components within a project**.
+![ngSnippet](images/README.gif "Usage example")
+## How to use
+**ng-snippets** is extreamly easy to use. Once the extension is installed just run the **"ng snippet"**:
 - ctl + shift + p
 - search & run 'ng snippets'
 
-Now you are ready to go. Your project now has a new vscode snippets file located:
+Now you are ready to go. Intellisense will be able to autocomplete any Angular component template within your project.
+- start typing your Angular component selector in any html file
+- select the snippet from the snippets dropdown
+
+## Where are my snippets stored?
+Once you have run  ng-snippets your project will have a vscode snippets file located:
 
 `.vscode/ng-project.code-snippets`
 
-Now your intellisense will be able to autocomplete the component template in HTML files. Including populating all possible @Input() & @Output() decorators and there value types.
 
 <!-- \[feature X\]\(images/feature-x.png\) -->
 
@@ -25,9 +31,12 @@ This extension contributes the following settings:
 
 ## Known Issues
 
-- @Input() that use getter/setter functions are not formatted properly.
+- @Input() that use getter/setter functions are not formatted properly
 
 ## Release Notes
+### 0.0.7 beta
+- update to README file
+
 ### 0.0.6 beta
 - add project name from package.json as a snippet prefix
 - do not generate snippet for a component without a selector
